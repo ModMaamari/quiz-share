@@ -1,0 +1,172 @@
+{% extends "base.html" %}
+
+{% block content %}
+<div class="container mt-4">
+    <h1 class="text-center mb-4">Create New Quiz</h1>
+    <div class="row justify-content-center">
+        <div class="col-md-8">
+            <div class="card">
+                <div class="card-body">
+                    <form id="quiz-form" >
+                        <div class="mb-3">
+                            <label for="title" class="form-label">Quiz Title</label>
+                            <input type="text" class="form-control" id="title" name="title" placeholder="Enter your quiz title" required >
+                        </div>
+                        <div class="mb-3">
+                            <label for="password" class="form-label">Quiz Password</label>
+                            <input type="password" class="form-control" id="password" name="password" placeholder="Create a password for your quiz" required autocomplete="new-password">
+                        </div>
+                        <div class="mb-3">
+                            <label for="min_participants" class="form-label">Number of Participants</label>
+                            <input type="number" class="form-control" id="min_participants" name="min_participants" min="2" placeholder="Minimum number of participants needed" required >
+                            <div class="form-text">Minimum 2 participants required</div>
+                        </div>
+                        <div class="mb-4">
+                            <div class="form-check">
+                                <input class="form-check-input" type="checkbox" id="exact_participants" name="exact_participants">
+                                <label class="form-check-label" for="exact_participants">
+                                    Use exact number of participants
+                                </label>
+                                <div class="form-text">
+                                    If checked, the quiz will close after reaching the specified number of participants.
+                                    If unchecked, the quiz will remain open and share results whenever the minimum is reached.
+                                </div>
+                            </div>
+                        </div>
+                        <div id="questions-container">
+                            <h4 class="mb-3">Questions</h4>
+                            <div class="mb-3 question-group">
+                                <label class="form-label">Question 1</label>
+                                <div class="input-group">
+                                    <input type="text" class="form-control question-input" name="questions[]" placeholder="Enter your question" required>
+                                    <button type="button" class="btn btn-outline-danger remove-question" style="display: none;">
+                                        <i class="bi bi-trash"></i> Remove
+                                    </button>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="mb-4">
+                            <button type="button" class="btn btn-secondary" onclick="addQuestion()">
+                                <i class="bi bi-plus-circle"></i> Add Question
+                            </button>
+                        </div>
+                        <div class="d-grid gap-2">
+                            <button type="submit" class="btn btn-primary btn-lg">Create Quiz</button>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+    <div id="quiz-result" class="mt-4" style="display: none;">
+        <div class="alert alert-success">
+            <h4>Quiz Created Successfully!</h4>
+            <div class="mb-2">
+                <strong>Quiz ID:</strong> <span id="quiz-id" class="font-monospace"></span>
+                <button class="btn btn-sm btn-outline-secondary ms-2" onclick="copyToClipboard('quiz-id')">
+                    <i class="bi bi-clipboard"></i> Copy
+                </button>
+            </div>
+            <div class="mb-2">
+                <strong>Share URL:</strong> <span id="quiz-url" class="font-monospace"></span>
+                <button class="btn btn-sm btn-outline-secondary ms-2" onclick="copyToClipboard('quiz-url')">
+                    <i class="bi bi-clipboard"></i> Copy
+                </button>
+            </div>
+            <div>
+                <strong>Password:</strong> <span id="quiz-password" class="font-monospace"></span>
+                <button class="btn btn-sm btn-outline-secondary ms-2" onclick="copyToClipboard('quiz-password')">
+                    <i class="bi bi-clipboard"></i> Copy
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+    let questionCount = 1;
+
+    function addQuestion() {
+        questionCount++;
+        const container = document.getElementById('questions-container');
+        const questionDiv = document.createElement('div');
+        questionDiv.className = 'mb-3 question-group';
+        questionDiv.innerHTML = `
+            <label class="form-label">Question ${questionCount}</label>
+            <div class="input-group">
+                <input type="text" class="form-control question-input" name="questions[]" placeholder="Enter your question" required>
+                <button type="button" class="btn btn-outline-danger remove-question">
+                    <i class="bi bi-trash"></i> Remove
+                </button>
+            </div>
+        `;
+        container.appendChild(questionDiv);
+
+        // Add event listener to the remove button
+        questionDiv.querySelector('.remove-question').addEventListener('click', function() {
+            questionDiv.remove();
+            updateQuestionNumbers();
+        });
+    }
+
+    function updateQuestionNumbers() {
+        const questions = document.querySelectorAll('.question-group');
+        questions.forEach((question, index) => {
+            question.querySelector('label').textContent = `Question ${index + 1}`;
+        });
+        questionCount = questions.length;
+    }
+
+    function copyToClipboard(elementId) {
+        const text = document.getElementById(elementId).textContent;
+        navigator.clipboard.writeText(text).then(() => {
+            const button = event.target.closest('button');
+            const originalText = button.innerHTML;
+            button.innerHTML = '<i class="bi bi-check"></i> Copied!';
+            setTimeout(() => {
+                button.innerHTML = originalText;
+            }, 2000);
+        });
+    }
+
+    document.getElementById('quiz-form').addEventListener('submit', async function(e) {
+        e.preventDefault();
+        const formData = new FormData(this);
+        formData.set('exact_participants', document.getElementById('exact_participants').checked.toString());
+        
+        try {
+            const response = await fetch('/create_quiz', {
+                method: 'POST',
+                body: formData
+            });
+            
+            const data = await response.json();
+            
+            if (data.success) {
+                document.getElementById('quiz-id').textContent = data.quiz_id;
+                document.getElementById('quiz-url').textContent = data.quiz_url;
+                document.getElementById('quiz-password').textContent = document.getElementById('password').value;
+                document.getElementById('quiz-result').style.display = 'block';
+                this.reset();
+                questionCount = 1;
+                const container = document.getElementById('questions-container');
+                container.innerHTML = `
+                    <h4 class="mb-3">Questions</h4>
+                    <div class="mb-3 question-group">
+                        <label class="form-label">Question 1</label>
+                        <div class="input-group">
+                            <input type="text" class="form-control question-input" name="questions[]" placeholder="Enter your question" required>
+                            <button type="button" class="btn btn-outline-danger remove-question" style="display: none;">
+                                <i class="bi bi-trash"></i> Remove
+                            </button>
+                        </div>
+                    </div>
+                `;
+            }
+        } catch (error) {
+            console.error('Error:', error);
+            alert('An error occurred while creating the quiz');
+        }
+    });
+</script>
+{% endblock %}

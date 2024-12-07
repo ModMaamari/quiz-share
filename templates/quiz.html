@@ -1,0 +1,84 @@
+{% extends "base.html" %}
+
+{% block content %}
+<div class="container mt-4">
+    {% with messages = get_flashed_messages(with_categories=true) %}
+        {% if messages %}
+            {% for category, message in messages %}
+                <div class="alert alert-{{ 'danger' if category == 'error' else category }} alert-dismissible fade show" role="alert">
+                    {{ message }}
+                    <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+                </div>
+            {% endfor %}
+        {% endif %}
+    {% endwith %}
+
+    <div class="row justify-content-center">
+        <div class="col-md-8">
+            <div class="card">
+                <div class="card-body">
+                    <h2 class="card-title text-center mb-4">{{ quiz.title }}</h2>
+                    
+                    {% if not quiz.is_active %}
+                        <div class="alert alert-warning">
+                            This quiz is no longer accepting responses as it has reached its maximum number of participants.
+                        </div>
+                    {% else %}
+                        <form method="POST" id="quiz-form">
+                            {% if not session.get('quiz_' + quiz.id + '_authenticated') %}
+                                <div class="mb-4">
+                                    <label for="password" class="form-label">Quiz Password</label>
+                                    <input type="password" class="form-control" id="password" name="password" required>
+                                </div>
+                            {% endif %}
+                            
+                            {% if session.get('quiz_' + quiz.id + '_authenticated') %}
+                                <div class="mb-4">
+                                    <label for="email" class="form-label">Your Email</label>
+                                    <input type="email" class="form-control" id="email" name="email" required>
+                                    <div class="form-text">Your email is needed to send you the quiz results.</div>
+                                </div>
+                                
+                                {% for question in quiz.questions %}
+                                    <div class="mb-4">
+                                        <label class="form-label">{{ question.question_text }}</label>
+                                        <input type="text" class="form-control" name="answer_{{ question.id }}">
+                                    </div>
+                                {% endfor %}
+                            {% endif %}
+                            
+                            <div class="d-grid gap-2">
+                                <button type="submit" class="btn btn-primary">
+                                    {% if not session.get('quiz_' + quiz.id + '_authenticated') %}
+                                        Enter Quiz
+                                    {% else %}
+                                        Submit Answers
+                                    {% endif %}
+                                </button>
+                            </div>
+                        </form>
+                    {% endif %}
+                </div>
+            </div>
+
+            {% if quiz.min_participants > 1 %}
+                <div class="card mt-4">
+                    <div class="card-body">
+                        <h5 class="card-title">Participation Status</h5>
+                        <p class="card-text">
+                            {% if quiz.exact_participants %}
+                                This quiz requires exactly {{ quiz.min_participants }} participants.
+                            {% else %}
+                                This quiz requires at least {{ quiz.min_participants }} participants.
+                            {% endif %}
+                        </p>
+                        <p class="card-text">
+                            Current participants: {{ quiz.responses|length }}
+                        </p>
+                    </div>
+                </div>
+            {% endif %}
+        </div>
+    </div>
+</div>
+{% endblock %}

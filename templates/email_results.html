@@ -1,0 +1,43 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            line-height: 1.6;
+            color: #333;
+        }
+        .container {
+            max-width: 600px;
+            margin: 0 auto;
+            padding: 20px;
+        }
+        .question {
+            margin-bottom: 30px;
+        }
+        .answer {
+            margin-left: 20px;
+            padding: 10px;
+            background-color: #f8f9fa;
+            border-left: 3px solid #007bff;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>Quiz Results: {{ quiz.title }}</h1>
+        <p>Here are all participants' answers for the quiz:</p>
+
+        {% for result in results %}
+        <div class="question">
+            <h3>{{ result.question }}</h3>
+            {% for answer in result.answers %}
+            <div class="answer">
+                <p>{{ answer }}</p>
+            </div>
+            {% endfor %}
+        </div>
+        {% endfor %}
+    </div>
+</body>
+</html>
